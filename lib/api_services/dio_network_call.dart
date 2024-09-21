@@ -2,6 +2,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 
+import '../models/dio_api_model.dart';
+import 'app_constant.dart';
+
 class ApiManager {
   static final ApiManager _instance = ApiManager._internal();
 
@@ -9,19 +12,36 @@ class ApiManager {
 
   ApiManager._internal();
 
+  static var logger = Logger(
+    level: Level.info,
+    printer: PrettyPrinter(methodCount: 0, noBoxingByDefault: false),
+  );
   static final Dio _dio = Dio();
 
+  static Future<DioResponseAPI> post({
+    required String methodName,
+    required Map<String, dynamic> params,
+  }) async {
+    try {
+      await _checkConnectivity();
+      String url = ApiConstant.baseUrl + methodName;
+      Options options = _header();
+      logger.i("==request== $url");
+      logger.i("==params== $params");
+      Response response = await _dio.post(url, data: params, options: options);
+
+      return DioResponseAPI(response.statusCode ?? 0, response.data);
+    } catch (error) {
+      return _handleError(error);
+    }
+  }
 
   static Future<DioResponseAPI> get({
     required String methodName,
   }) async {
     try {
       await _checkConnectivity();
-      String url =  methodName;
-      var logger = Logger(
-        level: Level.info,
-        printer: PrettyPrinter(methodCount: 0, noBoxingByDefault: false),
-      );
+      String url = ApiConstant.baseUrl + methodName;
       logger.i("==Url== ${url}");
       Response response = await _dio.get(
         url,
@@ -32,8 +52,6 @@ class ApiManager {
       return _handleError(error);
     }
   }
-
-
 
   static Future<void> _checkConnectivity() async {
     var connectivityResult = await Connectivity().checkConnectivity();
@@ -49,21 +67,12 @@ class ApiManager {
     logger.e("Error== $error");
     return DioResponseAPI(0, {"error": error}, isError: true, error: ApiError(0, error.toString()));
   }
+
+  static Options _header() {
+    Map<String, dynamic> map = {'Content-Type': 'application/json'};
+    return Options(
+      headers: map,
+    );
+  }
 }
 
-class ApiError {
-  final int code;
-  final String message;
-  final dynamic details;
-
-  ApiError(this.code, this.message, {this.details});
-}
-
-class DioResponseAPI {
-  final int code;
-  final Map<String, dynamic> data;
-  bool? isError;
-  ApiError? error;
-
-  DioResponseAPI(this.code, this.data, {this.isError, this.error});
-}

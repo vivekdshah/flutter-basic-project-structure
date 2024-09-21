@@ -2,9 +2,9 @@ abstract class AppStateClass {
 
   getAllData();
 
-  insertData();
+  insertData(Map<String,dynamic> map);
 
-  updateData();
+  updateData(Map<String,dynamic> map);
 
   viewData(dynamic id);
 }
